@@ -1,2 +1,2 @@
 # ocaml-fun
-Just a few exercises working with functional programming language OCaml
+Just a few fun exercises learning and working with OCaml
