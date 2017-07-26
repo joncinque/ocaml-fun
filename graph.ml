@@ -1,21 +1,41 @@
-(* Given module, extended to get list of nodes and edges *)
+(* Graph signature, functions to implement *)
 module type Graph_sig = sig
   type node
   type t
+  (* Colors to represent graph traversal.
+   * White represents unvisited
+   * Gray represents found for processing, but still unvisited
+   * Black represents visited *)
   type colors = White | Gray | Black
   type 'a state
 
+  (* Creates a graph from an adjacency list, which defines the edges starting
+   * from each node in the graph *)
   val of_adjacency : (node * node list) list -> t
+
+  (* The fold is the most important feature of the graph.  Given some 
+   * accumulator 'b, and a function to perform on each node given the 'b, the
+   * folder will go through each node, calling the given function.  This
+   * implementation only performs a breadth-first fold. The state returned
+   * shows how the graph was traversed. *)
   val breadth_first_fold : t -> node -> 'b -> ('b -> node -> 'b) -> 'b state
+
+  (* Decomposes the state of the fold to give the order of discovery of nodes 
+   * in the graph *)
   val discovery_times : 'a state -> (node * int) list
+
+  (* Decomposes the state to give the color of each node in the graph *)
   val colors : 'a state -> (node * colors) list
+
+  (* Pulls out the data aspect of the fold, the current state of the accumulator *)
   val data : 'a state -> 'a
 
-  (* Test helpers *)
+  (* Helpers to get nodes and edges of the graph *)
   val nodes : t -> node list
   val edges : t -> (node * node) list
 end
 
+(* Layer of indirection for making the graph generic to any comparable type *)
 module type GRAPH = sig
   module type Ord=sig
     type t val compare : t -> t -> int
@@ -28,6 +48,7 @@ module type GRAPH = sig
   module Make (N : Ord) : S with type node = N.t
 end
 
+(* Actual graph implementation *)
 module Graph : GRAPH = struct
     module type Ord = sig
         type t
@@ -133,7 +154,7 @@ module Graph : GRAPH = struct
         let discovery_times { times } = 
             N_map.fold (fun k v acc -> (k,v)::acc) times []
 
-        (* Test helpers *)
+        (* Helpers for testing *)
         let nodes { nodes } = nodes
         let edges { edges } = edges
 
@@ -141,6 +162,7 @@ module Graph : GRAPH = struct
 end
 
 (* Testing *)
+(* Creation of a graph *)
 module G : Graph.S with type node = Char.t = Graph.Make (Char)
 let g : G.t = G.of_adjacency
   [ 'r', ['v' ; 's']       ;
@@ -153,20 +175,24 @@ let g : G.t = G.of_adjacency
     'y', ['x' ; 'u']       ;
   ]
 
+(* Get the nodes in the graph *)
 let () = print_endline "Node list"
 let ns = G.nodes g
 let () = List.iter (Printf.printf "%c,") ns
 let () = print_endline ""
 
+(* Get the edges in the graph *)
 let () = print_endline "Edge list"
 let es = G.edges g
 let () = List.iter (fun (n1,n2) -> Printf.printf "%c -> %c\n" n1 n2) es
 
+(* Fold the graph, simple test of adding all node values to a list *)
 let () = print_endline "Fold result"
 let s = G.breadth_first_fold g 's' [] (fun acc x -> x :: acc)
 let d = List.rev (G.data s)
 let () = List.iter (Printf.printf "%c\n") d
 
+(* Test the colors of the nodes, which should all be black *)
 let c = G.colors s
 let () = print_endline "Colors"
 let string_of_color = function
@@ -175,6 +201,7 @@ let string_of_color = function
     | G.Gray -> "Gray"
 let () = List.iter (fun (n,c) -> Printf.printf "(%c, %s)\n" n (string_of_color c)) c
 
+(* Test the discovery times of the nodes in the graph *)
 let t = G.discovery_times s
 let () = print_endline "Discovery times"
 let () = List.iter (fun (n,t) -> Printf.printf "(%c,%d)\n" n t) t
