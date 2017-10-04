@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-ocamlc -g -o blockchain -I ../helper ../helper/convert.ml blockchain.ml
-./blockchain
+ocamlc -g -I ../helper ../helper/convert.ml ../helper/hash.ml blockchain.ml
+./a.out

@@ -83,6 +83,11 @@ let int_of_bin f_convert a_bin b_bin c_bin d_bin e_bin f_bin g_bin h_bin =
   let res = (a lsl 7) + (b lsl 6) + (c lsl 5) + (d lsl 4) + (e lsl 3) + (f lsl 2) + (g lsl 1) + h in
   f_convert res
 
+(** Conversion function to work with up to 4 ascii characters. *)
+let int_of_chars f_convert c1 c2 c3 c4 =
+  let i1 = Char.code c1 and i2 = Char.code c2 and i3 = Char.code c3 and i4 = Char.code c4
+  in  (i1 lsl 24) + (i2 lsl 16) + (i3 lsl 8) + i4 |> f_convert
+
 (** The main conversion function from a list of bits to a list of anything else.
  * Parameters:
    * f_conv: a conversion function from int, e.g. char_of_int
@@ -215,6 +220,16 @@ let score_string s =
   List.fold_left score_acc 0 (explode_string s)
 
 let ascii_of_hex = bin_of_hex >> ascii_of_bin
+
+let make_repeating_xor_string s output_size = 
+  let char_list = explode_string s in
+  let rec add_char acc size = function
+    | _ when size = 0 -> acc
+    | c :: cs -> add_char (c :: acc) (size - 1) cs
+    | [] when size > 0 -> add_char acc size char_list (* start again! *)
+    | [] -> acc
+  in
+  add_char [] output_size char_list |> List.rev |> string_of_char_list
 
 let get_best_xor_string xor_string =
   let rec test_string s l m_score m_res = function

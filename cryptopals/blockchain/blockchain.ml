@@ -1,8 +1,10 @@
 open Convert
+open Hash
 
 module type Hashable = sig 
   type t
-  val hash : t -> string
+  val hash_data : t -> string
+  val hash_block : string -> string
   val string_of_t : t -> string
 end
 
@@ -19,8 +21,8 @@ module Make_blockchain_first(Data : Hashable) = struct
 
   let hash_of_node = function
     | Nil -> Null
-    | Node({ ptr = Ptr s ; data = Data d }, _) -> Ptr (s ^ Data.hash d)
-    | Node({ ptr = Null  ; data = Data d }, _) -> Ptr (Data.hash d)
+    | Node({ ptr = Ptr s ; data = Data d }, _) -> Ptr (s ^ Data.hash_data d)
+    | Node({ ptr = Null  ; data = Data d }, _) -> Ptr (Data.hash_data d)
     | Node({ ptr = Ptr _ ; data = Empty  } , _) -> 
         raise (Invalid_argument "Block has a hash pointer without data, impossible")
     | Node({ ptr = Null  ; data = Empty  }, _) -> 
@@ -67,8 +69,8 @@ module Make_blockchain(Data : Hashable) = struct
   and node = hash_pointer * Data.t
 
   let hash_of_node = function
-    | (Ptr (h, _), d) -> h ^ Data.hash d
-    | (Null, d) -> Data.hash d
+    | (Ptr (h, _), d) -> Data.hash_block (h ^ Data.hash_data d)
+    | (Null, d) -> Data.hash_data d
 
   let rec verify = function
     | Null -> true
@@ -111,7 +113,8 @@ end
 
 module String_blockchain = Make_blockchain(struct
     type t = string
-    let hash s = s
+    let hash_data = xor_hash_string
+    let hash_block = xor_hash_string
     let string_of_t s = s
 end)
 
@@ -120,5 +123,5 @@ let () =
   let s_list = "s1" :: "s2" :: "s3" :: "s4" :: "s5" :: [] in
   let s1 = String_blockchain.add_list s s_list in
   let () = String_blockchain.verify s1 |> Printf.printf "%B\n" in
-  let () = String_blockchain.print_chain_old s1 in
+  (*let () = String_blockchain.print_chain_old s1 in *)
   String_blockchain.print_chain s1
